@@ -1,0 +1,39 @@
+{
+  "manifestVersion": 2,
+  "id": "command-code-usage",
+  "name": "Command Code Usage",
+  "version": "0.1.0",
+  "description": "Token and cost usage of Command Code (command-code / cmd) sessions, read from ~/.commandcode.",
+  "license": "MIT",
+  "engines": {
+    "orca": ">=1.4.248"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "src/worker.ts",
+  "contributes": {
+    "panels": [
+      {
+        "id": "command-code-usage",
+        "title": "Command Code Usage",
+        "icon": "bar-chart-3",
+        "entry": "src/panel.tsx",
+        "ui": "components"
+      }
+    ],
+    "statusBarItems": [
+      {
+        "id": "command-code-today",
+        "text": "CC —",
+        "icon": "gauge",
+        "tone": "neutral",
+        "tooltip": "Command Code usage today"
+      }
+    ]
+  },
+  "capabilities": [
+    {
+      "kind": "workspace:read"
+    }
+  ]
+}
