@@ -19,10 +19,8 @@ import {
   secrets,
   Select,
   set,
-  settings,
   Spinner,
   Stack,
-  Switch,
   Tab,
   Table,
   Tabs,
@@ -53,7 +51,6 @@ const summary = atom<UsageSummary | null>(null)
 const loading = atom(false)
 const failure = atom<string | null>(null)
 
-const creditsEnabled = atom(false)
 const credits = atom<CreditsResult | null>(null)
 const creditsBusy = atom(false)
 const creditsKey = atom('')
@@ -75,23 +72,11 @@ async function load(next: Period): Promise<void> {
 }
 
 export function setup(_context: PanelContext): void {
+  void loadCredits()
   void load(read(period))
-  void settings
-    .get('credits.enabled')
-    .then((value) => {
-      const enabled = value === true
-      set(creditsEnabled, enabled)
-      if (enabled) void loadCredits()
-      else set(credits, { status: 'disabled' })
-    })
-    .catch(() => set(credits, { status: 'disabled' }))
 }
 
 async function loadCredits(): Promise<void> {
-  if (!read(creditsEnabled)) {
-    set(credits, { status: 'disabled' })
-    return
-  }
   set(creditsBusy, true)
   try {
     set(credits, await plugin.request('credits.get', {}, { timeoutMs: 30_000 }))
@@ -100,18 +85,6 @@ async function loadCredits(): Promise<void> {
   } finally {
     set(creditsBusy, false)
   }
-}
-
-async function setCreditsEnabled(enabled: boolean): Promise<void> {
-  set(creditsEnabled, enabled)
-  try {
-    await settings.set('credits.enabled', enabled)
-  } catch (error) {
-    set(credits, { status: 'error', message: describeError(error) })
-    return
-  }
-  if (enabled) void loadCredits()
-  else set(credits, { status: 'disabled' })
 }
 
 async function saveCreditsKey(): Promise<void> {
@@ -196,8 +169,6 @@ function Totals({ data }: { data: UsageSummary }) {
 }
 
 function CreditsBody({ report, busy }: { report: CreditsResult; busy: boolean }) {
-  if (report.status === 'disabled') return null
-
   if (report.status === 'no-key' || report.status === 'expired') {
     const draft = read(creditsKey)
     return (
@@ -250,10 +221,13 @@ function CreditsBody({ report, busy }: { report: CreditsResult; busy: boolean })
     <Stack gap="sm">
       <Row justify="between" align="center" gap="xs" wrap>
         <Row gap="xs" align="center">
-          {report.plan ? <Badge tone="accent">{report.plan}</Badge> : null}
-          <Text size="xs" muted>
-            {report.account ?? 'Command Code'}
-          </Text>
+          {report.plan ? (
+            <Badge tone="accent">{report.plan}</Badge>
+          ) : (
+            <Text size="xs" muted>
+              Command Code
+            </Text>
+          )}
         </Row>
         <Button
           variant="ghost"
@@ -314,24 +288,16 @@ function CreditsBody({ report, busy }: { report: CreditsResult; busy: boolean })
 }
 
 function CreditsSection() {
-  const enabled = read(creditsEnabled)
   const report = read(credits)
   const busy = read(creditsBusy)
   return (
-    <Card title="Credits & limits" description="Optional · Command Code API">
+    <Card title="Credits & limits" description="Command Code API · plan, limits, credits">
       <Stack gap="sm">
-        <Switch
-          label="Query api.commandcode.ai"
-          checked={enabled}
-          onChange={(value) => void setCreditsEnabled(value)}
-        />
         <Text muted size="xs">
-          {enabled
-            ? 'Reads a Command Code API key and sends it only to api.commandcode.ai.'
-            : 'Off by default: no network request and no credential file is read.'}
+          Plan, limits and credits from api.commandcode.ai. Your key is sent only to that host.
         </Text>
-        {enabled && busy && !report ? <Spinner label="Loading Command Code credits" /> : null}
-        {enabled && report ? <CreditsBody report={report} busy={busy} /> : null}
+        {busy && !report ? <Spinner label="Loading Command Code credits" /> : null}
+        {report ? <CreditsBody report={report} busy={busy} /> : null}
       </Stack>
     </Card>
   )
@@ -356,6 +322,15 @@ export default function Panel() {
           onPress={() => void load(read(period))}
         />
       </Row>
+
+      <CreditsSection />
+
+      <Stack gap="xs">
+        <Heading level={3}>Token usage</Heading>
+        <Text muted size="xs">
+          From local session logs, read-only.
+        </Text>
+      </Stack>
 
       <Select
         label="Period"
@@ -432,8 +407,6 @@ export default function Panel() {
           </Tab>
         </Tabs>
       ) : null}
-
-      {data ? <CreditsSection /> : null}
 
       {data ? (
         <Stack gap="none">

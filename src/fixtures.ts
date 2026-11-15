@@ -153,7 +153,3 @@ export function sampleCredits(): CreditsResult {
 export function creditsNoKey(): CreditsResult {
   return { status: 'no-key' }
 }
-
-export function creditsDisabled(): CreditsResult {
-  return { status: 'disabled' }
-}

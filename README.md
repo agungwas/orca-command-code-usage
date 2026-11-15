@@ -1,8 +1,9 @@
 # Command Code Usage for Orca
 
-An Orca plugin that surfaces the token and cost usage of
-[Command Code](https://commandcode.ai) sessions (`command-code` / `cmd`) inside Orca's right
-sidebar and status bar, plus an optional block for plan, limit windows and remaining credits.
+An Orca plugin for Command Code (`command-code` / `cmd`) usage. Its primary block is the
+Command Code API: plan, 5-hour / weekly / billing-period limits and remaining credits. Below it,
+the plugin shows token and cost usage from the local session logs, broken down by day, project and
+model, plus a status bar item for today.
 
 Orca's built-in **Settings → Stats & usage** tracks Claude Code, Codex, OpenCode and Muse only.
 Command Code is a recognised launchable agent in Orca, but its sessions are never scanned there,
@@ -12,19 +13,19 @@ so its usage is invisible. This plugin closes that gap.
 
 ## What it shows
 
-- **Period selector** — Today, 7 days, 30 days or All time. Days are local calendar days; "7 days"
-  is today plus the previous six.
-- **Totals for the period** — total tokens and total estimated cost, with input, output, cache
-  read and cache write broken out separately.
+The panel is ordered with the API data first:
+
+- **Credits & limits** (top) — the plan, the 5-hour / weekly / billing-period bars, remaining
+  credits (monthly + purchased + free) and spend in the billing period.
+- **Token usage** (below) — period selector (Today, 7 days, 30 days, All time), total tokens and
+  total estimated cost, with input, output, cache read and cache write broken out separately.
+  Days are local calendar days; "7 days" is today plus the previous six.
 - **Three breakdown tables** — by day, by project and by model. Each row shows input, output,
   cache-read, cache-write, total tokens and cost. The per-table token columns collapse on a narrow
   sidebar (`In`/`Out` at 360 px, `Cache R`/`Cache W` at 480 px); the breakdown above the tables
   always shows all four token kinds.
 - **Status bar item** — today's cost and token total, e.g. `CC $0.499 · 72.4M`, refreshed when the
   worker starts and every five minutes while Orca stays open. Hover shows the exact numbers.
-- **Credits & limits** — optional and off by default. When enabled, a card shows the plan, the
-  5-hour / weekly / billing-period bars, remaining credits and spend in the billing period (see
-  below). The offline panel above works with or without it.
 
 Projects are the `<slug>` names Command Code uses on disk (`users-me-project-name`). The worker
 recovers the real path from Orca's workspace list when the project is one of your workspaces, and
@@ -32,13 +33,12 @@ otherwise probes the filesystem for a matching path, so the tables read like
 `~/Documents/Programming/Project/orca-command-code`. When no real path can be found the raw slug
 is shown.
 
-## Credits & limits (optional, off by default)
+## Credits & limits (always on)
 
-The switch in the panel — also **Settings → Plugins → Command Code Usage → "Command Code API
-credits"** — controls a second, clearly separated block. While it is off, no request is made and no
-credential file is read.
+The top block queries the API whenever the panel opens. There is no toggle: if a key resolves, the
+four API calls are made; if none resolves, no request is sent and the block asks for a key.
 
-When it is on, the worker resolves a key in this order, the same as the Paseo
+The worker resolves a key in this order, the same as the Paseo
 `paseo-commandcode-usage` plugin and the pi provider:
 
 1. Orca's encrypted plugin secrets (paste a key into the panel; **Forget key** removes it)
@@ -87,17 +87,19 @@ The usage scan (always on) is strictly local and read-only:
   partially written last line, unreadable files and unknown entry shapes all render as ordinary UI
   (an explanatory callout, an empty state, or a skipped-line count).
 
-The credits block (opt-in, off by default) is the only part that reads a credential or leaves the
-machine:
+The credits block (always on) is the only part that reads a credential or leaves the machine:
 
-- Only runs after the setting is enabled, and reads a key only from the places listed above.
+- Runs when the panel opens and reads a key only from the places listed above.
 - Sends the key only to `api.commandcode.ai`, never redeems refresh tokens and never writes to any
   credential store.
 - Redacts credential-shaped text from every error before it reaches the panel or the logs.
 
-The access it asks for is `workspace:read` (workspace names and paths, to prettify project slugs),
-`settings:own` (the opt-in toggle) and `secrets:own` (store a pasted key encrypted at rest in
-Orca). The worker runs out of process with your user account, as any `trusted-worker` plugin does.
+Without a resolvable key the panel still works: it asks for one and makes no network request. The
+usage scan and status bar never depend on the API.
+
+The access it asks for is `workspace:read` (workspace names and paths, to prettify project slugs)
+and `secrets:own` (store a pasted key encrypted at rest in Orca). The worker runs out of process
+with your user account, as any `trusted-worker` plugin does.
 
 ## Install
 

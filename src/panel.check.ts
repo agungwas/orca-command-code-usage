@@ -1,25 +1,33 @@
-// `orca plugin check` renders the panel once per scenario with a stubbed worker answer.
+// `orca plugin check` renders the panel once per scenario with stubbed worker answers.
 import { defineCheck, hostError } from 'orca/testing'
 
-import { emptySummary, missingSummary, sampleCredits, sampleSummary } from './fixtures'
-import type { Period } from './shared'
+import {
+  creditsNoKey,
+  emptySummary,
+  missingSummary,
+  sampleCredits,
+  sampleSummary
+} from './fixtures'
+import type { CreditsResult, Period, UsageSummary } from './shared'
 
-const answer = (input: { period: Period }) => sampleSummary(input.period)
+type UsageAnswer = (input: { period: Period }) => UsageSummary
+
+const answer: UsageAnswer = (input) => sampleSummary(input.period)
+
+const requests = (usage: UsageAnswer = answer, credits: CreditsResult = sampleCredits()) => ({
+  'usage.summary': usage,
+  'credits.get': credits
+})
 
 export default defineCheck({
-  populated: { requests: { 'usage.summary': answer } },
-  week: { requests: { 'usage.summary': answer }, persisted: { plugin: { period: '7d' } } },
-  credits: {
-    requests: { 'usage.summary': answer, 'credits.get': sampleCredits() },
-    settings: { 'credits.enabled': true }
-  },
-  empty: { requests: { 'usage.summary': (input) => emptySummary(input.period) } },
-  missing: { requests: { 'usage.summary': (input) => missingSummary(input.period) } },
+  populated: { requests: requests() },
+  week: { requests: requests(), persisted: { plugin: { period: '7d' } } },
+  noKey: { requests: requests(answer, creditsNoKey()) },
+  empty: { requests: requests((input) => emptySummary(input.period)) },
+  missing: { requests: requests((input) => missingSummary(input.period)) },
   failure: {
-    requests: {
-      'usage.summary': () => {
-        throw hostError('action_failed', 'Command Code data is unavailable')
-      }
-    }
+    requests: requests(() => {
+      throw hostError('action_failed', 'Command Code data is unavailable')
+    })
   }
 })

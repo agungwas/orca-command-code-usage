@@ -3,7 +3,7 @@
 import type { OrcaWorkerApi } from 'orca/worker'
 
 import './protocol'
-import { fetchCredits, redactSecrets, resolveCredential, type FetchLike } from './credits'
+import { fetchCredits, redactSecrets, resolveCredential, type CredentialLookup, type FetchLike } from './credits'
 import { describeError, formatCost, formatTokens } from './format'
 import { createProjectLabeller } from './projects'
 import {
@@ -23,8 +23,10 @@ export interface PluginOptions {
   projectsDir?: string
   /** How often the status bar re-scans today; 0 disables the timer. */
   refreshMs?: number
-  /** Tests stand in for the network behind the optional credits block. */
+  /** Tests stand in for the network behind the credits block. */
   fetchImpl?: FetchLike
+  /** Tests pin where a key may be found. */
+  credentialLookup?: CredentialLookup
 }
 
 export function statusText(today: UsageTotals): string {
@@ -99,16 +101,13 @@ export function activateWith(orca: OrcaWorkerApi, options: PluginOptions = {}): 
 
   orca.panels.handle('credits.get', async (_input, context): Promise<CreditsResult> => {
     try {
-      // The block is opt-in: without this setting nothing is read and no request is made.
-      if ((await orca.settings.get('credits.enabled')) !== true) return { status: 'disabled' }
-
       let secret: string | null = null
       try {
         secret = await orca.secrets.get('apiKey')
       } catch {
         secret = null
       }
-      const credential = resolveCredential({ secret })
+      const credential = resolveCredential({ ...(options.credentialLookup ?? {}), secret })
       if (!credential) return { status: 'no-key' }
       if (credential.expiresAt !== undefined && credential.expiresAt <= Date.now()) {
         return { status: 'expired', expiresAt: credential.expiresAt }

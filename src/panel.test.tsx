@@ -2,12 +2,23 @@ import { assert, hostError, mockHost, mount, test, type TestPanel } from 'orca/t
 
 import { creditsNoKey, emptySummary, missingSummary, sampleCredits, sampleSummary } from './fixtures'
 import * as panel from './panel'
-import type { Period, UsageSummary } from './shared'
+import type { CreditsResult, Period, UsageSummary } from './shared'
 
 let view: TestPanel | undefined
 
-function hostFor(requests: Record<string, (input: { period: Period }) => UsageSummary>) {
-  return mockHost({ requests })
+interface RequestOverrides {
+  'usage.summary'?: (input: { period: Period }) => UsageSummary
+  'credits.get'?: () => CreditsResult
+}
+
+function hostFor(overrides: RequestOverrides = {}) {
+  return mockHost({
+    requests: {
+      'usage.summary': (input) => liveSummary(input.period),
+      'credits.get': () => creditsNoKey(),
+      ...overrides
+    }
+  })
 }
 
 function liveSummary(period: Period = 'today') {
@@ -116,34 +127,15 @@ test('surfaces a worker failure without throwing', async () => {
   }
 })
 
-test('credits are opt-in and off by default', async () => {
+test('credits are the primary block, above token usage, and load by default', async () => {
   try {
-    view = await mount(panel, {
-      host: hostFor({ 'usage.summary': (input) => liveSummary(input.period) })
-    })
-    assert.ok(view.find({ label: 'Query api.commandcode.ai' }))
-    assert.ok(drawn(view).includes('Off by default'))
-  } finally {
-    await view?.unmount()
-    view = undefined
-  }
-})
-
-test('turning credits on asks the worker and shows the API data', async () => {
-  try {
-    const host = mockHost({
-      requests: {
-        'usage.summary': (input) => liveSummary(input.period),
-        'credits.get': () => sampleCredits()
-      }
-    })
-    view = await mount(panel, { host })
-    await view.toggle({ label: 'Query api.commandcode.ai' })
-    assert.ok(drawn(view).includes('Billing · 31-day'))
-    assert.ok(drawn(view).includes('$15.00'))
-    assert.ok(drawn(view).includes('Spent this billing period'))
-    assert.ok(drawn(view).includes('$3.50'))
-    assert.ok(host.callsOf('settings.set').length >= 1)
+    view = await mount(panel, { host: hostFor({ 'credits.get': () => sampleCredits() }) })
+    const tree = drawn(view)
+    assert.ok(tree.includes('Credits & limits'))
+    assert.ok(tree.includes('Billing · 31-day'))
+    assert.ok(tree.includes('$15.00'))
+    assert.ok(tree.includes('Spent this billing period'))
+    assert.ok(tree.indexOf('Credits & limits') < tree.indexOf('Token usage'))
   } finally {
     await view?.unmount()
     view = undefined
@@ -152,15 +144,7 @@ test('turning credits on asks the worker and shows the API data', async () => {
 
 test('asks for a key when none resolves', async () => {
   try {
-    view = await mount(panel, {
-      host: mockHost({
-        settings: { 'credits.enabled': true },
-        requests: {
-          'usage.summary': (input) => liveSummary(input.period),
-          'credits.get': () => creditsNoKey()
-        }
-      })
-    })
+    view = await mount(panel, { host: hostFor({ 'credits.get': () => creditsNoKey() }) })
     assert.ok(drawn(view).includes('No API key found'))
     assert.ok(view.find({ label: 'Command Code API key' }))
   } finally {
@@ -172,12 +156,8 @@ test('asks for a key when none resolves', async () => {
 test('shows a rejected key without leaking it', async () => {
   try {
     view = await mount(panel, {
-      host: mockHost({
-        settings: { 'credits.enabled': true },
-        requests: {
-          'usage.summary': (input) => liveSummary(input.period),
-          'credits.get': () => ({ status: 'rejected', message: 'Command Code rejected the API key' })
-        }
+      host: hostFor({
+        'credits.get': () => ({ status: 'rejected', message: 'Command Code rejected the API key' })
       })
     })
     assert.ok(drawn(view).includes('API key rejected'))

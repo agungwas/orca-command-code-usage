@@ -79,13 +79,12 @@ test('status text is stable for a day with no usage', () => {
   assert.equal(worker.statusText(emptyTotals()), 'CC $0.00')
 })
 
-test('credits are off until the setting is enabled, and never fetch while off', async () => {
+test('reports no-key without a request when no credential resolves', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'cc-usage-credits-'))
   try {
     let fetched = false
     const host = mockHost({
-      results: { 'workspace.list': { workspaces: [], truncated: false } },
-      secrets: { apiKey: 'stored-key' }
+      results: { 'workspace.list': { workspaces: [], truncated: false } }
     })
     const mounted = await mountWorker(
       {
@@ -93,6 +92,13 @@ test('credits are off until the setting is enabled, and never fetch while off', 
           worker.activateWith(orca, {
             projectsDir: dir,
             refreshMs: 0,
+            credentialLookup: {
+              env: {},
+              home: '/nonexistent-command-code-home',
+              readFile: () => {
+                throw new Error('ENOENT')
+              }
+            },
             fetchImpl: () => {
               fetched = true
               throw new Error('should not be called')
@@ -102,7 +108,7 @@ test('credits are off until the setting is enabled, and never fetch while off', 
       { host }
     )
 
-    assert.deepEqual(await mounted.request('credits.get', {}), { status: 'disabled' })
+    assert.deepEqual(await mounted.request('credits.get', {}), { status: 'no-key' })
     assert.equal(fetched, false)
     await mounted.deactivate()
   } finally {

@@ -2,8 +2,8 @@
   "manifestVersion": 2,
   "id": "command-code-usage",
   "name": "Command Code Usage",
-  "version": "0.1.0",
-  "description": "Token and cost usage of Command Code (command-code / cmd) sessions, plus optional credits and limits.",
+  "version": "0.3.0",
+  "description": "Plan, limits and credits from the Command Code API, plus token and cost usage from local Command Code sessions.",
   "license": "MIT",
   "engines": {
     "orca": ">=1.4.248"
@@ -24,28 +24,16 @@
     "statusBarItems": [
       {
         "id": "command-code-today",
-        "text": "CC \u2014",
+        "text": "CC —",
         "icon": "gauge",
         "tone": "neutral",
         "tooltip": "Command Code usage today"
-      }
-    ],
-    "settings": [
-      {
-        "key": "credits.enabled",
-        "title": "Command Code API credits",
-        "description": "Off by default. When on, the plugin reads a Command Code API key (Orca secrets, COMMAND_CODE_API_KEY / COMMANDCODE_API_KEY, or an auth.json under ~/.commandcode, ~/.pi or ~/.omp) and queries api.commandcode.ai for your plan, limit windows and remaining credits. The key is sent only to that host; the offline session panel keeps working either way.",
-        "type": "boolean",
-        "default": false
       }
     ]
   },
   "capabilities": [
     {
       "kind": "workspace:read"
-    },
-    {
-      "kind": "settings:own"
     },
     {
       "kind": "secrets:own"

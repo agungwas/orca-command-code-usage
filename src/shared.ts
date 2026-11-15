@@ -107,11 +107,10 @@ export interface CreditsBalance {
 }
 
 /**
- * What the optional credits block shows. `disabled` and `no-key` are normal states: the block is
- * opt-in and works without any credential. Only `ok` carries data from api.commandcode.ai.
+ * What the credits block shows. `no-key` is the normal state when no credential resolves; only
+ * `ok` carries data from api.commandcode.ai.
  */
 export type CreditsResult =
-  | { status: 'disabled' }
   | { status: 'no-key' }
   | { status: 'expired'; expiresAt: number | null }
   | { status: 'rejected'; message: string }
