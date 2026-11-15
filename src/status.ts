@@ -23,12 +23,12 @@ export function formatStatusCountdown(milliseconds: number): string {
   return hoursLeft > 0 ? `${days}d${hoursLeft}h` : `${days}d`
 }
 
-/** The 5-hour and weekly windows, falling back to whatever else the API reported. */
+/** The 5-hour, weekly and 30-day billing windows, in that order. */
 function primaryWindows(windows: readonly CreditsWindow[]): CreditsWindow[] {
-  const preferred = ['fiveHour', 'weekly']
+  const preferred = ['fiveHour', 'weekly', 'billing-period']
     .map((id) => windows.find((window) => window.id === id))
     .filter((window): window is CreditsWindow => window !== undefined)
-  return preferred.length > 0 ? preferred : windows.slice(0, 2)
+  return preferred.length > 0 ? preferred : windows.slice(0, 3)
 }
 
 function windowPercent(window: CreditsWindow): string | null {
@@ -74,6 +74,7 @@ export function statusTone(credits: CreditsResult): 'neutral' | 'warning' | 'dan
 function shortWindowLabel(window: CreditsWindow): string {
   if (window.id === 'fiveHour') return '5h'
   if (window.id === 'weekly') return 'wk'
+  if (window.id === 'billing-period') return '30d'
   return window.label
 }
 

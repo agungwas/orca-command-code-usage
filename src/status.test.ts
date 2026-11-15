@@ -59,8 +59,8 @@ test('formats the status bar countdown compactly', () => {
 })
 
 test('shows the 5-hour and weekly windows with reset countdowns', () => {
-  assert.equal(creditsStatus(OK, NOW), '⌘ 19% 35m · 32% 3d')
-  assert.equal(statusText(today(), OK, NOW), '⌘ 19% 35m · 32% 3d')
+  assert.equal(creditsStatus(OK, NOW), '⌘ 19% 35m · 32% 3d · 18% 26d')
+  assert.equal(statusText(today(), OK, NOW), '⌘ 19% 35m · 32% 3d · 18% 26d')
 })
 
 test('falls back to local cost and tokens without API data', () => {
@@ -74,6 +74,7 @@ test('tooltip describes every window and the balance', () => {
   assert.ok(tooltip.includes('pro'))
   assert.ok(tooltip.includes('5h 19% (35m)'))
   assert.ok(tooltip.includes('wk 32% (3d)'))
+  assert.ok(tooltip.includes('30d 18% (26d)'))
   assert.ok(tooltip.includes('$8.09 left'))
   assert.ok(!tooltip.includes('resets in'))
   assert.ok(!tooltip.includes('auth.json'))
