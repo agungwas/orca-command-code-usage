@@ -24,8 +24,8 @@ The panel is ordered with the API data first:
   cache-read, cache-write, total tokens and cost. The per-table token columns collapse on a narrow
   sidebar (`In`/`Out` at 360 px, `Cache R`/`Cache W` at 480 px); the breakdown above the tables
   always shows all four token kinds.
-- **Status bar item** — in Orca's built-in usage style: `CC 19% 35m · 32% 3d`, the 5-hour and
-  weekly percentages plus the time until each resets. The API is polled every five minutes and the
+- **Status bar item** — in Orca's built-in usage style: `CC 19% 1h17m · 32% 3d23h`, the 5-hour and
+  weekly percentages plus the compact time until each resets. The API is polled every five minutes and the
   countdown is redrawn every minute; the tone warms at 75% and turns red at 90%. The tooltip lists
   every window with its used/cap amount and reset, remaining credits, period spend and key source.
   Without API data it falls back to today's `CC $0.250 · 115`. Clicking it opens the Command Code

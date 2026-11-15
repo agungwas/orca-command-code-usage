@@ -4,6 +4,7 @@ import {
   creditsStatus,
   fallbackStatus,
   formatCountdown,
+  formatStatusCountdown,
   statusText,
   statusTooltip
 } from './status'
@@ -56,6 +57,15 @@ test('formats reset time like the built-in usage items', () => {
   assert.equal(formatCountdown(5 * HOUR), '5h')
   assert.equal(formatCountdown(51 * HOUR), '2d 3h')
   assert.equal(formatCountdown(22 * DAY + 18 * HOUR), '22d 18h')
+})
+
+test('formats the status bar countdown compactly', () => {
+  assert.equal(formatStatusCountdown(30_000), '1m')
+  assert.equal(formatStatusCountdown(17 * MINUTE), '17m')
+  assert.equal(formatStatusCountdown(77 * MINUTE), '1h17m')
+  assert.equal(formatStatusCountdown(2 * HOUR), '2h')
+  assert.equal(formatStatusCountdown(51 * HOUR), '2d3h')
+  assert.equal(formatStatusCountdown(22 * DAY + 18 * HOUR), '22d18h')
 })
 
 test('shows the 5-hour and weekly windows with reset countdowns', () => {

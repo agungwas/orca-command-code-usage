@@ -2,7 +2,7 @@
   "manifestVersion": 2,
   "id": "command-code-usage",
   "name": "Command Code Usage",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Plan, limits and credits from the Command Code API, plus token and cost usage from local Command Code sessions.",
   "license": "MIT",
   "engines": {
