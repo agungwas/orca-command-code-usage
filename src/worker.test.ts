@@ -79,6 +79,38 @@ test('status text is stable for a day with no usage', () => {
   assert.equal(worker.statusText(emptyTotals()), 'CC $0.00')
 })
 
+test('the status bar command shows a today-summary notification', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'cc-usage-notify-'))
+  try {
+    await mkdir(join(dir, 'srv-repos-demo'), { recursive: true })
+    await writeFile(join(dir, 'srv-repos-demo', 'session.jsonl'), `${line('m1', 100, 5, 0.25)}\n`)
+
+    const host = mockHost({
+      results: { 'workspace.list': { workspaces: [], truncated: false } }
+    })
+    const mounted = await mountWorker(
+      {
+        default: (orca) =>
+          worker.activateWith(orca, { projectsDir: dir, refreshMs: 0 })
+      },
+      { host }
+    )
+
+    await mounted.command('command-code-usage.show-summary')
+
+    const calls = host.callsOf('notifications.show')
+    assert.equal(calls.length, 1)
+    const notification = calls[0] as unknown as { title: string; body: string }
+    assert.equal(notification.title, 'Command Code usage')
+    assert.ok(notification.body.includes('115 tokens'))
+    assert.ok(notification.body.includes('$0.250'))
+    assert.deepEqual(mounted.refusals, [])
+    await mounted.deactivate()
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
 test('reports no-key without a request when no credential resolves', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'cc-usage-credits-'))
   try {

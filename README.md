@@ -25,7 +25,9 @@ The panel is ordered with the API data first:
   sidebar (`In`/`Out` at 360 px, `Cache R`/`Cache W` at 480 px); the breakdown above the tables
   always shows all four token kinds.
 - **Status bar item** — today's cost and token total, e.g. `CC $0.499 · 72.4M`, refreshed when the
-  worker starts and every five minutes while Orca stays open. Hover shows the exact numbers.
+  worker starts and every five minutes while Orca stays open. Hover shows the exact numbers;
+  clicking it shows a desktop notification with today's summary (the same command,
+  `Command Code Usage: show today's summary`, is in the command palette).
 
 Projects are the `<slug>` names Command Code uses on disk (`users-me-project-name`). The worker
 recovers the real path from Orca's workspace list when the project is one of your workspaces, and
@@ -97,9 +99,10 @@ The credits block (always on) is the only part that reads a credential or leaves
 Without a resolvable key the panel still works: it asks for one and makes no network request. The
 usage scan and status bar never depend on the API.
 
-The access it asks for is `workspace:read` (workspace names and paths, to prettify project slugs)
-and `secrets:own` (store a pasted key encrypted at rest in Orca). The worker runs out of process
-with your user account, as any `trusted-worker` plugin does.
+The access it asks for is `workspace:read` (workspace names and paths, to prettify project slugs),
+`secrets:own` (store a pasted key encrypted at rest in Orca) and `notifications:show` (the status
+bar item's click summary). The worker runs out of process with your user account, as any
+`trusted-worker` plugin does.
 
 ## Install
 

@@ -17,6 +17,7 @@ import { collectUsage, defaultProjectsDir, emptySummary } from './usage'
 
 const REFRESH_MS = 5 * 60_000
 const STATUS_ITEM_ID = 'command-code-today'
+const SHOW_SUMMARY_COMMAND = 'command-code-usage.show-summary'
 
 export interface PluginOptions {
   /** Tests point this at a fixture directory instead of ~/.commandcode/projects. */
@@ -121,6 +122,18 @@ export function activateWith(orca: OrcaWorkerApi, options: PluginOptions = {}): 
     } catch (error) {
       // Never let a key or response body reach the panel unredacted.
       return { status: 'error', message: redactSecrets(describeError(error)) }
+    }
+  })
+
+  orca.commands.register(SHOW_SUMMARY_COMMAND, async () => {
+    const today = await summary('today')
+    try {
+      await orca.host.call('notifications.show', {
+        title: 'Command Code usage',
+        body: statusTooltip(today.today)
+      })
+    } catch (error) {
+      orca.log(`Command Code notification failed: ${describeError(error)}`)
     }
   })
 
