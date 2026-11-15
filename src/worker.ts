@@ -5,6 +5,7 @@ import type { OrcaWorkerApi } from 'orca/worker'
 import './protocol'
 import { fetchCredits, redactSecrets, resolveCredential, type CredentialLookup, type FetchLike } from './credits'
 import { describeError, formatCost, formatTokens } from './format'
+import { openUsagePanel } from './open-panel'
 import { createProjectLabeller } from './projects'
 import {
   normalizePeriod,
@@ -28,6 +29,8 @@ export interface PluginOptions {
   fetchImpl?: FetchLike
   /** Tests pin where a key may be found. */
   credentialLookup?: CredentialLookup
+  /** Tests stand in for the CLI call that opens the panel. */
+  openPanel?: () => Promise<boolean>
 }
 
 export function statusText(today: UsageTotals): string {
@@ -126,14 +129,16 @@ export function activateWith(orca: OrcaWorkerApi, options: PluginOptions = {}): 
   })
 
   orca.commands.register(SHOW_SUMMARY_COMMAND, async () => {
-    const today = await summary('today')
+    const open = options.openPanel ?? openUsagePanel
     try {
-      await orca.host.call('notifications.show', {
-        title: 'Command Code usage',
-        body: statusTooltip(today.today)
-      })
+      const opened = await open()
+      if (!opened) {
+        orca.log(
+          'Command Code: could not open the panel; no working `orca` CLI was found to run `orca plugin open`.'
+        )
+      }
     } catch (error) {
-      orca.log(`Command Code notification failed: ${describeError(error)}`)
+      orca.log(`Command Code: opening the panel failed: ${describeError(error)}`)
     }
   })
 

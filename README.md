@@ -26,8 +26,10 @@ The panel is ordered with the API data first:
   always shows all four token kinds.
 - **Status bar item** — today's cost and token total, e.g. `CC $0.499 · 72.4M`, refreshed when the
   worker starts and every five minutes while Orca stays open. Hover shows the exact numbers;
-  clicking it shows a desktop notification with today's summary (the same command,
-  `Command Code Usage: show today's summary`, is in the command palette).
+  clicking it opens the Command Code Usage panel in the right sidebar. Orca's plugin API cannot
+  open a panel, so the worker shells out to `orca plugin open` (the same command is in the palette
+  as `Command Code Usage: open panel`). The Orca CLI must be on `PATH` or in a standard install
+  location.
 
 Projects are the `<slug>` names Command Code uses on disk (`users-me-project-name`). The worker
 recovers the real path from Orca's workspace list when the project is one of your workspaces, and
@@ -99,10 +101,9 @@ The credits block (always on) is the only part that reads a credential or leaves
 Without a resolvable key the panel still works: it asks for one and makes no network request. The
 usage scan and status bar never depend on the API.
 
-The access it asks for is `workspace:read` (workspace names and paths, to prettify project slugs),
-`secrets:own` (store a pasted key encrypted at rest in Orca) and `notifications:show` (the status
-bar item's click summary). The worker runs out of process with your user account, as any
-`trusted-worker` plugin does.
+The access it asks for is `workspace:read` (workspace names and paths, to prettify project slugs)
+and `secrets:own` (store a pasted key encrypted at rest in Orca). The worker runs out of process
+with your user account, as any `trusted-worker` plugin does.
 
 ## Install
 
@@ -150,6 +151,7 @@ Layout:
 | `src/worker.ts` | Worker: request handlers, status bar updates, project labels |
 | `src/usage.ts` | Streaming scanner and day/project/model aggregation |
 | `src/credits.ts` | Optional Command Code API client, credential resolution and redaction |
+| `src/open-panel.ts` | Opens the panel from the status bar through the Orca CLI (no plugin API exists) |
 | `src/shared.ts` | Types and pure helpers shared with the sandboxed panel (no Node imports) |
 | `src/projects.ts` | Lossy slug → real path recovery |
 | `src/panel.tsx` | The components panel |
@@ -164,6 +166,9 @@ Layout:
   moment.
 - Credits are fetched on demand, not cached; each refresh makes the four API calls again, with a
   15-second overall timeout.
+- The status bar click opens the panel through the Orca CLI. Without a CLI on `PATH` (or at the
+  standard app paths) the click logs a message and does nothing; the panel is still reachable from
+  Orca's activity bar or `orca plugin open`.
 
 ## License
 

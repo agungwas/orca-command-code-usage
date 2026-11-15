@@ -39,4 +39,20 @@ declare module 'node:readline' {
   export function createInterface(options: { input: unknown; crlfDelay?: number }): Interface
 }
 
-declare const process: { env: Record<string, string | undefined> }
+declare module 'node:child_process' {
+  export interface ExecFileOptions {
+    timeout?: number
+    maxBuffer?: number
+  }
+  export function execFile(
+    file: string,
+    args: readonly string[],
+    options: ExecFileOptions,
+    callback: (error: Error | null, stdout: string, stderr: string) => void
+  ): void
+}
+
+declare const process: {
+  env: Record<string, string | undefined>
+  platform: string
+}
