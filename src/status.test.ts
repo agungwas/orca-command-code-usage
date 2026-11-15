@@ -3,7 +3,6 @@ import { assert, test } from 'orca/testing'
 import {
   creditsStatus,
   fallbackStatus,
-  formatCountdown,
   formatStatusCountdown,
   statusText,
   statusTooltip
@@ -50,15 +49,6 @@ const OK: CreditsResult = {
   periodEndsAt: NOW + 26 * DAY
 }
 
-test('formats reset time like the built-in usage items', () => {
-  assert.equal(formatCountdown(0), 'now')
-  assert.equal(formatCountdown(30_000), '1m')
-  assert.equal(formatCountdown(35 * MINUTE), '35m')
-  assert.equal(formatCountdown(5 * HOUR), '5h')
-  assert.equal(formatCountdown(51 * HOUR), '2d 3h')
-  assert.equal(formatCountdown(22 * DAY + 18 * HOUR), '22d 18h')
-})
-
 test('formats the status bar countdown compactly', () => {
   assert.equal(formatStatusCountdown(30_000), '1m')
   assert.equal(formatStatusCountdown(17 * MINUTE), '17m')
@@ -82,12 +72,13 @@ test('falls back to local cost and tokens without API data', () => {
 test('tooltip describes every window and the balance', () => {
   const tooltip = statusTooltip(today(), OK, NOW)
   assert.ok(tooltip.includes('pro'))
-  assert.ok(tooltip.includes('5-hour 19% $0.550/$3.00, resets in 35m'))
-  assert.ok(tooltip.includes('Weekly 32%'))
-  assert.ok(tooltip.includes('Credits $8.09'))
-  assert.ok(tooltip.includes('spent $1.82 this period'))
+  assert.ok(tooltip.includes('5h 19% (35m)'))
+  assert.ok(tooltip.includes('wk 32% (3d)'))
+  assert.ok(tooltip.includes('$8.09 left'))
+  assert.ok(!tooltip.includes('resets in'))
+  assert.ok(!tooltip.includes('auth.json'))
 
   const noKey = statusTooltip(today(), { status: 'no-key' }, NOW)
   assert.ok(noKey.includes('115 tokens'))
-  assert.ok(noKey.includes('credits: no API key'))
+  assert.ok(noKey.includes('no API key'))
 })

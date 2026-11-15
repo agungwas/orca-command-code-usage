@@ -9,20 +9,7 @@ function marked(body: string): string {
   return STATUS_MARK ? `${STATUS_MARK} ${body}` : body
 }
 
-/** "5h", "35m", "2d 3h", "22d 18h" — the spaced form the tooltip uses. */
-export function formatCountdown(milliseconds: number): string {
-  if (!Number.isFinite(milliseconds)) return ''
-  if (milliseconds <= 0) return 'now'
-  const minutes = Math.ceil(milliseconds / 60_000)
-  if (minutes < 60) return `${minutes}m`
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours}h`
-  const days = Math.floor(hours / 24)
-  const rest = hours % 24
-  return rest > 0 ? `${days}d ${rest}h` : `${days}d`
-}
-
-/** Compact form for the status bar: "17m", "1h17m", "2d3h", "22d18h". */
+/** Compact form for the status bar and tooltip: "17m", "1h17m", "2d3h", "22d18h". */
 export function formatStatusCountdown(milliseconds: number): string {
   if (!Number.isFinite(milliseconds)) return ''
   if (milliseconds <= 0) return 'now'
@@ -84,46 +71,42 @@ export function statusTone(credits: CreditsResult): 'neutral' | 'warning' | 'dan
   return 'neutral'
 }
 
+function shortWindowLabel(window: CreditsWindow): string {
+  if (window.id === 'fiveHour') return '5h'
+  if (window.id === 'weekly') return 'wk'
+  return window.label
+}
+
 export function statusTooltip(
   today: UsageTotals,
   credits: CreditsResult,
   now: number
 ): string {
   if (credits.status === 'ok') {
-    const parts: string[] = ['Command Code']
-    if (credits.plan) parts.push(credits.plan)
-    for (const window of credits.windows) {
-      const percent = windowPercent(window) ?? 'n/a'
-      const amounts =
-        window.used !== null && window.cap !== null
-          ? ` ${formatCost(window.used)}/${formatCost(window.cap)}`
-          : ''
-      const reset =
+    const parts: string[] = [credits.plan ?? 'Command Code']
+    for (const window of primaryWindows(credits.windows)) {
+      const percent = windowPercent(window)
+      if (percent === null) continue
+      parts.push(
         window.resetsAt === null
-          ? ''
-          : `, resets in ${formatCountdown(window.resetsAt - now)}`
-      parts.push(`${window.label} ${percent}${amounts}${reset}`)
+          ? `${shortWindowLabel(window)} ${percent}`
+          : `${shortWindowLabel(window)} ${percent} (${formatStatusCountdown(window.resetsAt - now)})`
+      )
     }
     const balance = credits.balances.find((entry) => entry.id === 'credits') ?? credits.balances[0]
-    if (balance) parts.push(`${balance.label} ${formatCost(balance.remaining)}`)
-    if (credits.periodSpentUsd !== null) {
-      parts.push(`spent ${formatCost(credits.periodSpentUsd)} this period`)
-    }
-    parts.push(credits.source)
+    if (balance) parts.push(`${formatCost(balance.remaining)} left`)
     return parts.join(' · ')
   }
 
-  const base = `Command Code today: ${formatTokens(today.totalTokens)} tokens, ${formatCost(
-    today.costUsd
-  )} estimated across ${today.messages} messages`
+  const base = `${formatTokens(today.totalTokens)} tokens · ${formatCost(today.costUsd)} today`
   switch (credits.status) {
     case 'no-key':
-      return `${base} · credits: no API key`
+      return `${base} · no API key`
     case 'expired':
-      return `${base} · credits: login expired`
+      return `${base} · login expired`
     case 'rejected':
-      return `${base} · credits: key rejected`
+      return `${base} · key rejected`
     case 'error':
-      return `${base} · credits: ${credits.message}`
+      return `${base} · credits unavailable`
   }
 }

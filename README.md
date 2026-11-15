@@ -25,14 +25,13 @@ The panel is ordered with the API data first:
   sidebar (`In`/`Out` at 360 px, `Cache R`/`Cache W` at 480 px); the breakdown above the tables
   always shows all four token kinds.
 - **Status bar item** — in Orca's built-in usage style with a `⌘` text mark: `⌘ 19% 1h17m ·
-  32% 3d23h`, the 5-hour and weekly percentages plus the compact time until each resets. The API is
-  polled every five minutes and the
-  countdown is redrawn every minute; the tone warms at 75% and turns red at 90%. The tooltip lists
-  every window with its used/cap amount and reset, remaining credits, period spend and key source.
-  Without API data it falls back to today's `CC $0.250 · 115`. Clicking it opens the Command Code
-  Usage panel in the right sidebar. Orca's plugin API cannot open a panel, so the worker shells out
-  to `orca plugin open` (the same command is in the palette as `Command Code Usage: open panel`).
-  The Orca CLI must be on `PATH` or in a standard install location.
+  32% 3d23h`. The API is polled every five minutes, the countdown is redrawn every minute, and the
+  tone warms at 75% and turns red at 90%. The tooltip gives the plan, the 5-hour/weekly percentages
+  with reset countdowns, and remaining credits. Without API data it falls back to today's
+  `⌘ $0.250 · 115`. Clicking it opens the Command Code Usage panel in the right sidebar. Orca's
+  plugin API cannot open a panel, so the worker shells out to `orca plugin open` (the same command is
+  in the palette as `Command Code Usage: open panel`). The Orca CLI must be on `PATH` or in a
+  standard install location.
 
 Projects are the `<slug>` names Command Code uses on disk (`users-me-project-name`). The worker
 recovers the real path from Orca's workspace list when the project is one of your workspaces, and
