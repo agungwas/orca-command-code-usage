@@ -66,7 +66,7 @@ test('answers the panel and updates the status bar from the same scan', async ()
     assert.ok(updates.length >= 1)
     const last = updates[updates.length - 1] as unknown as { id: string; text: string }
     assert.equal(last.id, 'command-code-today')
-    assert.equal(last.text, 'CC $0.250 · 115')
+    assert.equal(last.text, '⌘ $0.250 · 115')
     assert.deepEqual(mounted.refusals, [])
     await mounted.deactivate()
   } finally {

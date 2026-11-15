@@ -2,6 +2,13 @@
 import { formatCost, formatTokens } from './format'
 import type { CreditsResult, CreditsWindow, UsageTotals } from './shared'
 
+// Text mark in front of the numbers. An empty mark uses only the manifest icon.
+const STATUS_MARK = '⌘'
+
+function marked(body: string): string {
+  return STATUS_MARK ? `${STATUS_MARK} ${body}` : body
+}
+
 /** "5h", "35m", "2d 3h", "22d 18h" — the spaced form the tooltip uses. */
 export function formatCountdown(milliseconds: number): string {
   if (!Number.isFinite(milliseconds)) return ''
@@ -55,13 +62,13 @@ export function creditsStatus(credits: CreditsResult, now: number): string | nul
   const parts = primaryWindows(credits.windows)
     .map((window) => windowPart(window, now))
     .filter((part): part is string => part !== null)
-  return parts.length > 0 ? `CC ${parts.join(' · ')}` : null
+  return parts.length > 0 ? marked(parts.join(' · ')) : null
 }
 
 /** Local-only fallback used when no API data is available. */
 export function fallbackStatus(today: UsageTotals): string {
-  if (today.messages === 0) return 'CC $0.00'
-  return `CC ${formatCost(today.costUsd)} · ${formatTokens(today.totalTokens)}`
+  if (today.messages === 0) return marked('$0.00')
+  return marked(`${formatCost(today.costUsd)} · ${formatTokens(today.totalTokens)}`)
 }
 
 export function statusText(today: UsageTotals, credits: CreditsResult, now: number): string {

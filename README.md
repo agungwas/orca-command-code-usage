@@ -24,7 +24,7 @@ The panel is ordered with the API data first:
   cache-read, cache-write, total tokens and cost. The per-table token columns collapse on a narrow
   sidebar (`In`/`Out` at 360 px, `Cache R`/`Cache W` at 480 px); the breakdown above the tables
   always shows all four token kinds.
-- **Status bar item** — in Orca's built-in usage style with the `terminal` icon: `CC 19% 1h17m ·
+- **Status bar item** — in Orca's built-in usage style with a `⌘` text mark: `⌘ 19% 1h17m ·
   32% 3d23h`, the 5-hour and weekly percentages plus the compact time until each resets. The API is
   polled every five minutes and the
   countdown is redrawn every minute; the tone warms at 75% and turns red at 90%. The tooltip lists

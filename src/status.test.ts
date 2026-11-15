@@ -69,14 +69,14 @@ test('formats the status bar countdown compactly', () => {
 })
 
 test('shows the 5-hour and weekly windows with reset countdowns', () => {
-  assert.equal(creditsStatus(OK, NOW), 'CC 19% 35m · 32% 3d')
-  assert.equal(statusText(today(), OK, NOW), 'CC 19% 35m · 32% 3d')
+  assert.equal(creditsStatus(OK, NOW), '⌘ 19% 35m · 32% 3d')
+  assert.equal(statusText(today(), OK, NOW), '⌘ 19% 35m · 32% 3d')
 })
 
 test('falls back to local cost and tokens without API data', () => {
-  assert.equal(fallbackStatus(today()), 'CC $0.250 · 115')
-  assert.equal(fallbackStatus(emptyTotals()), 'CC $0.00')
-  assert.equal(statusText(today(), { status: 'no-key' }, NOW), 'CC $0.250 · 115')
+  assert.equal(fallbackStatus(today()), '⌘ $0.250 · 115')
+  assert.equal(fallbackStatus(emptyTotals()), '⌘ $0.00')
+  assert.equal(statusText(today(), { status: 'no-key' }, NOW), '⌘ $0.250 · 115')
 })
 
 test('tooltip describes every window and the balance', () => {
