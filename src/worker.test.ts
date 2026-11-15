@@ -4,7 +4,6 @@ import { join } from 'node:path'
 
 import { assert, mockHost, mountWorker, test } from 'orca/testing'
 
-import { emptyTotals } from './shared'
 import type { FetchLike } from './credits'
 import * as worker from './worker'
 
@@ -52,7 +51,7 @@ test('answers the panel and updates the status bar from the same scan', async ()
     })
 
     const mounted = await mountWorker(
-      { default: (orca) => worker.activateWith(orca, { projectsDir: dir, refreshMs: 0 }) },
+      { default: (orca) => worker.activateWith(orca, { projectsDir: dir, refreshMs: 0, creditsPollMs: 0, statusTickMs: 0 }) },
       { host }
     )
     const summary = await mounted.request('usage.summary', { period: 'all' })
@@ -75,10 +74,6 @@ test('answers the panel and updates the status bar from the same scan', async ()
   }
 })
 
-test('status text is stable for a day with no usage', () => {
-  assert.equal(worker.statusText(emptyTotals()), 'CC $0.00')
-})
-
 test('the status bar command opens the side panel', async () => {
   let opened = 0
   const host = mockHost({
@@ -91,7 +86,7 @@ test('the status bar command opens the side panel', async () => {
         default: (orca) =>
           worker.activateWith(orca, {
             projectsDir: dir,
-            refreshMs: 0,
+            refreshMs: 0, creditsPollMs: 0, statusTickMs: 0,
             openPanel: async () => {
               opened += 1
               return true
@@ -123,7 +118,7 @@ test('reports no-key without a request when no credential resolves', async () =>
         default: (orca) =>
           worker.activateWith(orca, {
             projectsDir: dir,
-            refreshMs: 0,
+            refreshMs: 0, creditsPollMs: 0, statusTickMs: 0,
             credentialLookup: {
               env: {},
               home: '/nonexistent-command-code-home',
@@ -182,7 +177,7 @@ test('credits use the stored secret and never log it', async () => {
     const mounted = await mountWorker(
       {
         default: (orca) =>
-          worker.activateWith(orca, { projectsDir: dir, refreshMs: 0, fetchImpl })
+          worker.activateWith(orca, { projectsDir: dir, refreshMs: 0, creditsPollMs: 0, statusTickMs: 0, fetchImpl })
       },
       { host }
     )

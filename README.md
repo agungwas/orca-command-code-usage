@@ -24,12 +24,14 @@ The panel is ordered with the API data first:
   cache-read, cache-write, total tokens and cost. The per-table token columns collapse on a narrow
   sidebar (`In`/`Out` at 360 px, `Cache R`/`Cache W` at 480 px); the breakdown above the tables
   always shows all four token kinds.
-- **Status bar item** — today's cost and token total, e.g. `CC $0.499 · 72.4M`, refreshed when the
-  worker starts and every five minutes while Orca stays open. Hover shows the exact numbers;
-  clicking it opens the Command Code Usage panel in the right sidebar. Orca's plugin API cannot
-  open a panel, so the worker shells out to `orca plugin open` (the same command is in the palette
-  as `Command Code Usage: open panel`). The Orca CLI must be on `PATH` or in a standard install
-  location.
+- **Status bar item** — in Orca's built-in usage style: `CC 19% 35m · 32% 3d`, the 5-hour and
+  weekly percentages plus the time until each resets. The API is polled every five minutes and the
+  countdown is redrawn every minute; the tone warms at 75% and turns red at 90%. The tooltip lists
+  every window with its used/cap amount and reset, remaining credits, period spend and key source.
+  Without API data it falls back to today's `CC $0.250 · 115`. Clicking it opens the Command Code
+  Usage panel in the right sidebar. Orca's plugin API cannot open a panel, so the worker shells out
+  to `orca plugin open` (the same command is in the palette as `Command Code Usage: open panel`).
+  The Orca CLI must be on `PATH` or in a standard install location.
 
 Projects are the `<slug>` names Command Code uses on disk (`users-me-project-name`). The worker
 recovers the real path from Orca's workspace list when the project is one of your workspaces, and
@@ -164,8 +166,8 @@ Layout:
 - "All time" re-reads every session file on each refresh. Scans are sequential and streamed, and a
   panel request that Orca stops waiting for is aborted, but a very large history still takes a
   moment.
-- Credits are fetched on demand, not cached; each refresh makes the four API calls again, with a
-  15-second overall timeout.
+- Credits are fetched on demand and polled every five minutes for the status bar, not cached on
+  disk; each refresh makes the four API calls again, with a 15-second overall timeout.
 - The status bar click opens the panel through the Orca CLI. Without a CLI on `PATH` (or at the
   standard app paths) the click logs a message and does nothing; the panel is still reachable from
   Orca's activity bar or `orca plugin open`.
