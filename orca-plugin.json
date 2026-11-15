@@ -44,5 +44,10 @@
     {
       "kind": "workspace:read"
     }
-  ]
+  ],
+  "repository": "https://github.com/agungwas/orca-command-code-usage",
+  "homepage": "https://github.com/agungwas/orca-command-code-usage",
+  "author": {
+    "name": "agungwas"
+  }
 }

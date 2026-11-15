@@ -112,11 +112,17 @@ with your user account, as any `trusted-worker` plugin does.
 Requires Orca 1.4.248 or newer.
 
 ```sh
-orca plugin install /Users/agung.pratama/Documents/Programming/Project/orca-command-code \
-  --approve <fingerprint>
+orca plugin install agungwas/orca-command-code-usage@v0.6.5
 ```
 
-Orca prints the fingerprint when the install needs approval:
+This is a plugin that runs code, so Orca prints an `approval_required` error with the exact access
+it grants and a fingerprint. Re-run the same command with `--approve <fingerprint>`:
+
+```sh
+orca plugin install agungwas/orca-command-code-usage@v0.6.5 --approve ap1-...
+```
+
+Installing from a local folder works the same way; Orca prints the fingerprint for those files:
 
 ```sh
 orca plugin install <path> --json      # error.data.approvalFingerprint
@@ -124,7 +130,9 @@ orca plugin inspect <path> --json      # what it contributes and the access it a
 ```
 
 Approve only the fingerprint Orca prints for exactly these files and this access. Any code change
-produces a new fingerprint.
+produces a new fingerprint. The plugin is listed at
+`https://www.onorca.dev/plugins/agungwas/orca-command-code-usage` once the repository carries the
+`orca-plugin` topic.
 
 For development, load the folder instead of installing it:
 
