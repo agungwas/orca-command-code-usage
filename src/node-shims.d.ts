@@ -7,6 +7,7 @@ declare module 'node:fs' {
   }
   export function createReadStream(path: string, options?: { encoding?: 'utf8' }): ReadStream
   export function existsSync(path: string): boolean
+  export function readFileSync(path: string, encoding: 'utf8'): string
 }
 
 declare module 'node:fs/promises' {
@@ -37,3 +38,5 @@ declare module 'node:readline' {
   }
   export function createInterface(options: { input: unknown; crlfDelay?: number }): Interface
 }
+
+declare const process: { env: Record<string, string | undefined> }

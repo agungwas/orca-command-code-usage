@@ -1,6 +1,13 @@
 // Deterministic sample data for `orca plugin check` and the panel tests.
 import { formatDay } from './format'
-import { emptyTotals, type Period, type UsageRow, type UsageSummary, type UsageTotals } from './shared'
+import {
+  emptyTotals,
+  type CreditsResult,
+  type Period,
+  type UsageRow,
+  type UsageSummary,
+  type UsageTotals
+} from './shared'
 
 function totals(
   input: number,
@@ -112,4 +119,41 @@ export function emptySummary(period: Period = 'today'): UsageSummary {
 
 export function missingSummary(period: Period = 'today'): UsageSummary {
   return { ...emptySummary(period), dirAvailable: false }
+}
+
+export function sampleCredits(): CreditsResult {
+  const now = Date.now()
+  return {
+    status: 'ok',
+    fetchedAt: now,
+    account: 'acme',
+    plan: 'pro',
+    source: 'Orca secrets',
+    windows: [
+      { id: 'fiveHour', label: '5-hour', usedPct: 20, used: 2, cap: 10, resetsAt: now + 2 * 3_600_000 },
+      { id: 'weekly', label: 'Weekly', usedPct: 10, used: 5, cap: 50, resetsAt: now + 3 * 86_400_000 },
+      {
+        id: 'billing-period',
+        label: 'Billing · 31-day',
+        usedPct: 18.9,
+        used: 3.5,
+        cap: 18.5,
+        resetsAt: now + 18 * 86_400_000
+      }
+    ],
+    balances: [
+      { id: 'credits', label: 'Credits', remaining: 15 },
+      { id: 'purchased', label: 'Purchased', remaining: 5 }
+    ],
+    periodSpentUsd: 3.5,
+    periodEndsAt: now + 18 * 86_400_000
+  }
+}
+
+export function creditsNoKey(): CreditsResult {
+  return { status: 'no-key' }
+}
+
+export function creditsDisabled(): CreditsResult {
+  return { status: 'disabled' }
 }

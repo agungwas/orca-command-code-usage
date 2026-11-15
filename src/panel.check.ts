@@ -1,7 +1,7 @@
 // `orca plugin check` renders the panel once per scenario with a stubbed worker answer.
 import { defineCheck, hostError } from 'orca/testing'
 
-import { emptySummary, missingSummary, sampleSummary } from './fixtures'
+import { emptySummary, missingSummary, sampleCredits, sampleSummary } from './fixtures'
 import type { Period } from './shared'
 
 const answer = (input: { period: Period }) => sampleSummary(input.period)
@@ -9,6 +9,10 @@ const answer = (input: { period: Period }) => sampleSummary(input.period)
 export default defineCheck({
   populated: { requests: { 'usage.summary': answer } },
   week: { requests: { 'usage.summary': answer }, persisted: { plugin: { period: '7d' } } },
+  credits: {
+    requests: { 'usage.summary': answer, 'credits.get': sampleCredits() },
+    settings: { 'credits.enabled': true }
+  },
   empty: { requests: { 'usage.summary': (input) => emptySummary(input.period) } },
   missing: { requests: { 'usage.summary': (input) => missingSummary(input.period) } },
   failure: {

@@ -88,3 +88,43 @@ export function dayKey(timestamp: number): string {
   const day = String(date.getDate()).padStart(2, '0')
   return `${date.getFullYear()}-${month}-${day}`
 }
+
+/** One reported limit window (5-hour, weekly, or the billing period). */
+export interface CreditsWindow {
+  id: string
+  label: string
+  /** 0-100, or null when the API reported no usable cap. */
+  usedPct: number | null
+  used: number | null
+  cap: number | null
+  resetsAt: number | null
+}
+
+export interface CreditsBalance {
+  id: string
+  label: string
+  remaining: number
+}
+
+/**
+ * What the optional credits block shows. `disabled` and `no-key` are normal states: the block is
+ * opt-in and works without any credential. Only `ok` carries data from api.commandcode.ai.
+ */
+export type CreditsResult =
+  | { status: 'disabled' }
+  | { status: 'no-key' }
+  | { status: 'expired'; expiresAt: number | null }
+  | { status: 'rejected'; message: string }
+  | { status: 'error'; message: string }
+  | {
+      status: 'ok'
+      fetchedAt: number
+      account: string | null
+      plan: string | null
+      /** Human-readable credential origin, e.g. "Orca secrets" or "~/.commandcode/auth.json". */
+      source: string
+      windows: CreditsWindow[]
+      balances: CreditsBalance[]
+      periodSpentUsd: number | null
+      periodEndsAt: number | null
+    }

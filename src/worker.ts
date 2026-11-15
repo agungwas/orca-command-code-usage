@@ -3,10 +3,12 @@
 import type { OrcaWorkerApi } from 'orca/worker'
 
 import './protocol'
+import { fetchCredits, redactSecrets, resolveCredential, type FetchLike } from './credits'
 import { describeError, formatCost, formatTokens } from './format'
 import { createProjectLabeller } from './projects'
 import {
   normalizePeriod,
+  type CreditsResult,
   type Period,
   type UsageSummary,
   type UsageTotals
@@ -21,6 +23,8 @@ export interface PluginOptions {
   projectsDir?: string
   /** How often the status bar re-scans today; 0 disables the timer. */
   refreshMs?: number
+  /** Tests stand in for the network behind the optional credits block. */
+  fetchImpl?: FetchLike
 }
 
 export function statusText(today: UsageTotals): string {
@@ -91,6 +95,34 @@ export function activateWith(orca: OrcaWorkerApi, options: PluginOptions = {}): 
     // Reuse the scan we already paid for: its `today` bucket is the status bar's number.
     await updateStatus(answer.today)
     return answer
+  })
+
+  orca.panels.handle('credits.get', async (_input, context): Promise<CreditsResult> => {
+    try {
+      // The block is opt-in: without this setting nothing is read and no request is made.
+      if ((await orca.settings.get('credits.enabled')) !== true) return { status: 'disabled' }
+
+      let secret: string | null = null
+      try {
+        secret = await orca.secrets.get('apiKey')
+      } catch {
+        secret = null
+      }
+      const credential = resolveCredential({ secret })
+      if (!credential) return { status: 'no-key' }
+      if (credential.expiresAt !== undefined && credential.expiresAt <= Date.now()) {
+        return { status: 'expired', expiresAt: credential.expiresAt }
+      }
+      return await fetchCredits({
+        apiKey: credential.apiKey,
+        source: credential.source,
+        signal: context.signal,
+        ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {})
+      })
+    } catch (error) {
+      // Never let a key or response body reach the panel unredacted.
+      return { status: 'error', message: redactSecrets(describeError(error)) }
+    }
   })
 
   const refreshStatus = async (): Promise<void> => {

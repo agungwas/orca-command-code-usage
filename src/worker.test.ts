@@ -5,9 +5,11 @@ import { join } from 'node:path'
 import { assert, mockHost, mountWorker, test } from 'orca/testing'
 
 import { emptyTotals } from './shared'
+import type { FetchLike } from './credits'
 import * as worker from './worker'
 
-const TODAY = new Date(2026, 10, 14, 12, 0, 0).toISOString()
+// The fixture must land on the local calendar day the worker calls "today".
+const TODAY = new Date().toISOString()
 
 function line(model: string, input: number, output: number, cost: number): string {
   return JSON.stringify({
@@ -75,4 +77,90 @@ test('answers the panel and updates the status bar from the same scan', async ()
 
 test('status text is stable for a day with no usage', () => {
   assert.equal(worker.statusText(emptyTotals()), 'CC $0.00')
+})
+
+test('credits are off until the setting is enabled, and never fetch while off', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'cc-usage-credits-'))
+  try {
+    let fetched = false
+    const host = mockHost({
+      results: { 'workspace.list': { workspaces: [], truncated: false } },
+      secrets: { apiKey: 'stored-key' }
+    })
+    const mounted = await mountWorker(
+      {
+        default: (orca) =>
+          worker.activateWith(orca, {
+            projectsDir: dir,
+            refreshMs: 0,
+            fetchImpl: () => {
+              fetched = true
+              throw new Error('should not be called')
+            }
+          })
+      },
+      { host }
+    )
+
+    assert.deepEqual(await mounted.request('credits.get', {}), { status: 'disabled' })
+    assert.equal(fetched, false)
+    await mounted.deactivate()
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+})
+
+test('credits use the stored secret and never log it', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'cc-usage-credits-'))
+  try {
+    const calls: string[] = []
+    const fetchImpl: FetchLike = async (url) => {
+      calls.push(new URL(url).pathname)
+      const value =
+        new URL(url).pathname === '/alpha/whoami'
+          ? { org: { login: 'acme', id: 'org-1' } }
+          : new URL(url).pathname === '/alpha/billing/credits'
+            ? {
+                credits: { monthlyCredits: 10 },
+                windowLimits: { fiveHour: { used: 2, cap: 10, resetAt: 1_763_240_000 } }
+              }
+            : new URL(url).pathname === '/alpha/billing/subscriptions'
+              ? { data: { planId: 'pro', currentPeriodStart: '2026-11-01T00:00:00Z', currentPeriodEnd: '2026-12-02T00:00:00Z' } }
+              : { totalCost: 1 }
+      return {
+        ok: true,
+        status: 200,
+        statusText: 'OK',
+        text: async () => JSON.stringify(value),
+        json: async () => value
+      }
+    }
+
+    const host = mockHost({
+      results: { 'workspace.list': { workspaces: [], truncated: false } },
+      settings: { 'credits.enabled': true },
+      secrets: { apiKey: 'stored-secret-key' }
+    })
+    const mounted = await mountWorker(
+      {
+        default: (orca) =>
+          worker.activateWith(orca, { projectsDir: dir, refreshMs: 0, fetchImpl })
+      },
+      { host }
+    )
+
+    const result = await mounted.request('credits.get', {})
+    assert.equal(result.status, 'ok')
+    if (result.status !== 'ok') return
+    assert.equal(result.account, 'acme')
+    assert.equal(result.source, 'Orca secrets')
+    assert.equal(result.balances[0]!.remaining, 10)
+    assert.equal(calls.length, 4)
+    assert.ok(!JSON.stringify(mounted.posts).includes('stored-secret-key'))
+    assert.ok(!mounted.logs.join('\n').includes('stored-secret-key'))
+    assert.deepEqual(mounted.refusals, [])
+    await mounted.deactivate()
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
 })

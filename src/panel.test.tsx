@@ -1,6 +1,6 @@
 import { assert, hostError, mockHost, mount, test, type TestPanel } from 'orca/testing'
 
-import { emptySummary, missingSummary, sampleSummary } from './fixtures'
+import { creditsNoKey, emptySummary, missingSummary, sampleCredits, sampleSummary } from './fixtures'
 import * as panel from './panel'
 import type { Period, UsageSummary } from './shared'
 
@@ -110,6 +110,78 @@ test('surfaces a worker failure without throwing', async () => {
     })
     assert.ok(view.find({ text: 'Command Code data is unavailable' }))
     assert.deepEqual(view.errors, [])
+  } finally {
+    await view?.unmount()
+    view = undefined
+  }
+})
+
+test('credits are opt-in and off by default', async () => {
+  try {
+    view = await mount(panel, {
+      host: hostFor({ 'usage.summary': (input) => liveSummary(input.period) })
+    })
+    assert.ok(view.find({ label: 'Query api.commandcode.ai' }))
+    assert.ok(drawn(view).includes('Off by default'))
+  } finally {
+    await view?.unmount()
+    view = undefined
+  }
+})
+
+test('turning credits on asks the worker and shows the API data', async () => {
+  try {
+    const host = mockHost({
+      requests: {
+        'usage.summary': (input) => liveSummary(input.period),
+        'credits.get': () => sampleCredits()
+      }
+    })
+    view = await mount(panel, { host })
+    await view.toggle({ label: 'Query api.commandcode.ai' })
+    assert.ok(drawn(view).includes('Billing · 31-day'))
+    assert.ok(drawn(view).includes('$15.00'))
+    assert.ok(drawn(view).includes('Spent this billing period'))
+    assert.ok(drawn(view).includes('$3.50'))
+    assert.ok(host.callsOf('settings.set').length >= 1)
+  } finally {
+    await view?.unmount()
+    view = undefined
+  }
+})
+
+test('asks for a key when none resolves', async () => {
+  try {
+    view = await mount(panel, {
+      host: mockHost({
+        settings: { 'credits.enabled': true },
+        requests: {
+          'usage.summary': (input) => liveSummary(input.period),
+          'credits.get': () => creditsNoKey()
+        }
+      })
+    })
+    assert.ok(drawn(view).includes('No API key found'))
+    assert.ok(view.find({ label: 'Command Code API key' }))
+  } finally {
+    await view?.unmount()
+    view = undefined
+  }
+})
+
+test('shows a rejected key without leaking it', async () => {
+  try {
+    view = await mount(panel, {
+      host: mockHost({
+        settings: { 'credits.enabled': true },
+        requests: {
+          'usage.summary': (input) => liveSummary(input.period),
+          'credits.get': () => ({ status: 'rejected', message: 'Command Code rejected the API key' })
+        }
+      })
+    })
+    assert.ok(drawn(view).includes('API key rejected'))
+    assert.ok(!drawn(view).includes('sk-'))
   } finally {
     await view?.unmount()
     view = undefined

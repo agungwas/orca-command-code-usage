@@ -2,7 +2,7 @@
 
 An Orca plugin that surfaces the token and cost usage of
 [Command Code](https://commandcode.ai) sessions (`command-code` / `cmd`) inside Orca's right
-sidebar and status bar.
+sidebar and status bar, plus an optional block for plan, limit windows and remaining credits.
 
 Orca's built-in **Settings → Stats & usage** tracks Claude Code, Codex, OpenCode and Muse only.
 Command Code is a recognised launchable agent in Orca, but its sessions are never scanned there,
@@ -22,12 +22,42 @@ so its usage is invisible. This plugin closes that gap.
   always shows all four token kinds.
 - **Status bar item** — today's cost and token total, e.g. `CC $0.499 · 72.4M`, refreshed when the
   worker starts and every five minutes while Orca stays open. Hover shows the exact numbers.
+- **Credits & limits** — optional and off by default. When enabled, a card shows the plan, the
+  5-hour / weekly / billing-period bars, remaining credits and spend in the billing period (see
+  below). The offline panel above works with or without it.
 
 Projects are the `<slug>` names Command Code uses on disk (`users-me-project-name`). The worker
 recovers the real path from Orca's workspace list when the project is one of your workspaces, and
 otherwise probes the filesystem for a matching path, so the tables read like
 `~/Documents/Programming/Project/orca-command-code`. When no real path can be found the raw slug
 is shown.
+
+## Credits & limits (optional, off by default)
+
+The switch in the panel — also **Settings → Plugins → Command Code Usage → "Command Code API
+credits"** — controls a second, clearly separated block. While it is off, no request is made and no
+credential file is read.
+
+When it is on, the worker resolves a key in this order, the same as the Paseo
+`paseo-commandcode-usage` plugin and the pi provider:
+
+1. Orca's encrypted plugin secrets (paste a key into the panel; **Forget key** removes it)
+2. `COMMAND_CODE_API_KEY`, then `COMMANDCODE_API_KEY`
+3. `~/.commandcode/auth.json`, then `~/.pi/agent/auth.json`, then `~/.omp/agent/auth.json`
+
+and calls only `api.commandcode.ai`:
+
+| Endpoint | Used for |
+| --- | --- |
+| `/alpha/whoami` | account label, `org.id` |
+| `/alpha/billing/credits` | monthly/purchased/free credits, 5-hour and weekly `{ used, cap, resetAt }` |
+| `/alpha/billing/subscriptions` | plan, billing-period start/end |
+| `/alpha/usage/summary` | spend in the billing period |
+
+Sections the API does not report are omitted, never zeroed. 401/403 becomes "API key rejected", an
+expired stored login asks for a fresh key, and the whole call gives up after 15 seconds instead of
+hanging the panel. The key is sent only to that host, never logged, never posted to a panel and
+never included in the UI; error bodies pass through a credential redactor first.
 
 ## Data source
 
@@ -46,6 +76,8 @@ shape is documented in [docs/cc-session-format.md](docs/cc-session-format.md).
 
 ## Read-only guarantee
 
+The usage scan (always on) is strictly local and read-only:
+
 - Reads only `*.jsonl` files under `~/.commandcode/projects` (and never the `*.checkpoints.jsonl`
   files). It never reads `auth.json`, `settings.json`, `config.json` or the session metadata.
 - Never writes anything to `~/.commandcode`, and makes no network calls.
@@ -55,9 +87,17 @@ shape is documented in [docs/cc-session-format.md](docs/cc-session-format.md).
   partially written last line, unreadable files and unknown entry shapes all render as ordinary UI
   (an explanatory callout, an empty state, or a skipped-line count).
 
-The only access it asks for is `workspace:read` (workspace names and paths, used to prettify
-project slugs). The worker runs out of process with your user account, as any `trusted-worker`
-plugin does.
+The credits block (opt-in, off by default) is the only part that reads a credential or leaves the
+machine:
+
+- Only runs after the setting is enabled, and reads a key only from the places listed above.
+- Sends the key only to `api.commandcode.ai`, never redeems refresh tokens and never writes to any
+  credential store.
+- Redacts credential-shaped text from every error before it reaches the panel or the logs.
+
+The access it asks for is `workspace:read` (workspace names and paths, to prettify project slugs),
+`settings:own` (the opt-in toggle) and `secrets:own` (store a pasted key encrypted at rest in
+Orca). The worker runs out of process with your user account, as any `trusted-worker` plugin does.
 
 ## Install
 
@@ -101,9 +141,10 @@ Layout:
 
 | File | Purpose |
 | --- | --- |
-| `orca-plugin.json` | Manifest: panel, status bar item, `trusted-worker`, `workspace:read` |
-| `src/worker.ts` | Worker: request handler, status bar updates, project labels |
+| `orca-plugin.json` | Manifest: panel, status bar item, settings, `trusted-worker`, capabilities |
+| `src/worker.ts` | Worker: request handlers, status bar updates, project labels |
 | `src/usage.ts` | Streaming scanner and day/project/model aggregation |
+| `src/credits.ts` | Optional Command Code API client, credential resolution and redaction |
 | `src/shared.ts` | Types and pure helpers shared with the sandboxed panel (no Node imports) |
 | `src/projects.ts` | Lossy slug → real path recovery |
 | `src/panel.tsx` | The components panel |
@@ -116,6 +157,8 @@ Layout:
 - "All time" re-reads every session file on each refresh. Scans are sequential and streamed, and a
   panel request that Orca stops waiting for is aborted, but a very large history still takes a
   moment.
+- Credits are fetched on demand, not cached; each refresh makes the four API calls again, with a
+  15-second overall timeout.
 
 ## License
 
